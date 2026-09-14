@@ -75,6 +75,18 @@ export default {
       return json({ error: "Method not allowed" }, 405);
     }
 
+    const activity = url.pathname.match(/^\/api\/admin\/links\/(\d+)\/activity$/);
+    if (activity) {
+      if (!hasMasterAccess(request, env)) return json({ error: "Unauthorized" }, 401);
+      if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
+      const id = Number(activity[1]);
+      const link = await env.DB.prepare("SELECT id,code FROM links WHERE id=? AND deleted_at IS NULL").bind(id).first();
+      if (!link) return json({ error: "Link not found" }, 404);
+      const { results = [] } = await env.DB.prepare("SELECT occurred_at,referrer_host,device_class,browser_family,country_code FROM link_clicks WHERE link_id=? ORDER BY occurred_at DESC LIMIT 100").bind(id).all();
+      const summary = await env.DB.prepare("SELECT COUNT(*) total_clicks,COUNT(DISTINCT visitor_hash) unique_visitors FROM link_clicks WHERE link_id=?").bind(id).first();
+      return json({ link_id:id, code:link.code, total_clicks:Number(summary?.total_clicks||0), unique_visitors:Number(summary?.unique_visitors||0), recent_activity:results });
+    }
+
     const manage = url.pathname.match(/^\/api\/admin\/links\/(\d+)$/);
     if (manage) {
       if (!hasMasterAccess(request, env)) return json({ error: "Unauthorized" }, 401);
