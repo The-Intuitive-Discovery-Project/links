@@ -1,0 +1,54 @@
+name: TinyThor v2 Quality
+
+on:
+  push:
+    branches:
+      - rebuild-foundation
+      - quality/tinythor-v2-qc-2026-09-15
+  pull_request:
+    branches:
+      - rebuild-foundation
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate Worker syntax
+        run: node --check src/worker.js
+
+      - name: Run TinyThor v2 safety and redirect tests
+        run: node --test tests/*.test.mjs
+
+      - name: Validate schema safety contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "safety_status TEXT NOT NULL DEFAULT 'pending'" schema.sql
+          grep -q "safety_checked_at TEXT" schema.sql
+          grep -q "visitor_hash TEXT NOT NULL" schema.sql
+          if grep -Eiq 'raw_ip|ip_address' schema.sql; then
+            echo "Raw IP storage is not allowed in TinyThor v2."
+            exit 1
+          fi
+
+      - name: Validate migration guardrail wording
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "Preserve current system" REBUILD_PLAN.md
+          grep -q "Replacing the current live shortener before migration/test approval" REBUILD_PLAN.md
+          grep -q "Do not attach tinythor.cc to this test Worker until links have been migrated and tested" scripts/deploy-test.ps1
+
+      - name: Validate diff formatting
+        run: git diff --check
