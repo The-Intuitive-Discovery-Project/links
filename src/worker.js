@@ -17,6 +17,17 @@ const SAFETY_STATUSES = new Set(["pending", "approved", "blocked"]);
 
 function json(data, status = 200) { return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS }); }
 function text(message, status = 200) { return new Response(message, { status, headers: TEXT_HEADERS }); }
+function redirect(location) {
+  return new Response(null, {
+    status: 302,
+    headers: {
+      location,
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer"
+    }
+  });
+}
 function iso() { return new Date().toISOString(); }
 function safeEqual(a, b) {
   const left = String(a || ""), right = String(b || "");
@@ -170,6 +181,6 @@ export default {
     const link = await getLink(env, code);
     if (!link || !link.is_active || expired(link) || link.safety_status !== "approved") return text("This short link is unavailable.", 404);
     try { await recordClick(env, request, link); } catch {}
-    return Response.redirect(link.destination_url, 302);
+    return redirect(link.destination_url);
   }
 };
