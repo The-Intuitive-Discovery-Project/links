@@ -1,0 +1,31 @@
+# Local secrets / environment
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+!.env.example
+*.secret
+*.secrets.json
+
+# Cloudflare / dependencies
+.wrangler/
+node_modules/
+
+# Private keys / certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Production/local data exports
+backups/
+*.sql
+*.sqlite
+*.sqlite3
+*.csv
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
